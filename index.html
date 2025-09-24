@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Order-to-Cash Cycle Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony (Neutral grays, blues for focus, soft green for positive outcomes) -->
+    <!-- Application Structure Plan: The SPA uses a tab-based navigation ('As-Is' vs. 'To-Be') to facilitate direct comparison of the two workflows. This structure was chosen because the source report's primary goal is to contrast the inefficient current state with an improved future state. Users can instantly toggle between the two views to understand the specific changes and their impact. The page flows from a high-level summary, to the interactive process comparison, and concludes with a quantitative results chart, guiding the user from problem to solution. -->
+    <!-- Visualization & Content Choices: 1. Process Flows -> Goal: Organize/Compare -> Viz: HTML/CSS diagram with flexbox swimlanes and styled divs for steps/arrows -> Interaction: Toggled visibility via tabs -> Justification: Visually represents the workflow changes without relying on forbidden SVG/Mermaid libraries, making the structural difference between sequential and parallel work clear. 2. Key Result (Cycle Time) -> Goal: Compare/Inform -> Viz: Bar Chart -> Interaction: Static visual summary -> Justification: A Chart.js bar chart provides a quick, impactful quantitative comparison of the core improvement metric, reinforcing the value of the proposed change. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .tab-active {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .process-container {
+            display: flex;
+            gap: 1.5rem;
+            min-height: 400px;
+        }
+        .swimlane {
+            flex: 1;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: #f1f5f9;
+            border: 1px solid #e2e8f0;
+        }
+        .process-step {
+            background-color: white;
+            border: 1px solid #cbd5e1;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.375rem;
+            text-align: center;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            position: relative;
+        }
+        .arrow {
+            position: relative;
+            text-align: center;
+            padding: 1rem 0;
+            font-size: 0.75rem;
+            color: #ef4444;
+            font-weight: 500;
+        }
+        .arrow::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: 0.5rem;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid #ef4444;
+        }
+        .arrow-streamlined {
+            color: #22c55e;
+        }
+         .arrow-streamlined::after {
+            border-top-color: #22c55e;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+             .chart-container {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">Order-to-Cash Cycle Analysis</h1>
+            <p class="mt-4 text-lg text-gray-600">An interactive breakdown of workflow improvements.</p>
+        </header>
+
+        <main>
+            <section class="bg-white p-8 rounded-lg shadow-lg mb-12">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-900">Project Overview</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    Many businesses face challenges with visibility and efficiency in their order-to-cash cycle, leading to delays and missed revenue opportunities. This analysis showcases a redesigned workflow that addresses these bottlenecks. By mapping the current process and introducing parallel tasks and automation, the new system aims to significantly speed up the invoicing cycle and reduce errors. Explore the comparison below to see the impact of these changes.
+                </p>
+            </section>
+
+            <section>
+                <div class="mb-8">
+                    <nav class="flex justify-center space-x-4" aria-label="Tabs">
+                        <button id="tab-as-is" class="tab-btn px-6 py-3 font-medium text-lg rounded-md border-b-4 transition tab-active">
+                            As-Is Process
+                        </button>
+                        <button id="tab-to-be" class="tab-btn px-6 py-3 font-medium text-lg rounded-md border-b-4 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition">
+                            To-Be Process
+                        </button>
+                    </nav>
+                </div>
+
+                <div id="content-as-is" class="content-pane bg-white p-6 sm:p-8 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-bold mb-2 text-gray-900">Current State: Bottlenecks & Delays</h3>
+                    <p class="text-gray-600 mb-6">The current process is prone to delays due to sequential, manual handoffs and a lack of visibility between departments. Each team must wait for the previous one to complete its tasks, creating significant idle time.</p>
+                    <div class="process-container">
+                        <div class="swimlane">
+                            <h4 class="font-bold text-center mb-4 text-blue-800">Sales</h4>
+                            <div class="space-y-4">
+                                <div class="process-step">Receive Customer Order</div>
+                                <div class="arrow">Manual Handoff</div>
+                                <div class="process-step bg-blue-50 border-blue-200">Forward Order to Fulfillment</div>
+                            </div>
+                        </div>
+                        <div class="swimlane">
+                            <h4 class="font-bold text-center mb-4 text-purple-800">Fulfillment</h4>
+                             <div class="space-y-4">
+                                <div class="process-step mt-24">Receive Order</div>
+                                <div class="arrow"></div>
+                                <div class="process-step">Process & Ship Order</div>
+                                <div class="arrow">Manual Handoff</div>
+                                <div class="process-step bg-purple-50 border-purple-200">Send Shipping Confirmation</div>
+                            </div>
+                        </div>
+                        <div class="swimlane">
+                            <h4 class="font-bold text-center mb-4 text-green-800">Finance</h4>
+                            <div class="process-step mt-52">Wait for Confirmation</div>
+                            <div class="arrow"></div>
+                             <div class="process-step bg-green-50 border-green-200">Create & Send Invoice</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="content-to-be" class="content-pane bg-white p-6 sm:p-8 rounded-lg shadow-lg hidden">
+                    <h3 class="text-xl font-bold mb-2 text-gray-900">Future State: Streamlined Workflow</h3>
+                    <p class="text-gray-600 mb-6">The redesigned process utilizes parallel actions to speed up the cycle. As soon as an order is placed, both Fulfillment and Finance are triggered, eliminating wait times and accelerating the entire process.</p>
+                    <div class="process-container">
+                        <div class="swimlane">
+                            <h4 class="font-bold text-center mb-4 text-blue-800">Sales</h4>
+                            <div class="process-step">Receive Customer Order</div>
+                            <div class="arrow arrow-streamlined">Triggers Parallel Actions</div>
+                        </div>
+                        <div class="swimlane">
+                            <h4 class="font-bold text-center mb-4 text-purple-800">Fulfillment</h4>
+                             <div class="process-step mt-16">Process & Ship Order</div>
+                             <div class="arrow arrow-streamlined">Shipping Confirmed</div>
+                        </div>
+                        <div class="swimlane">
+                            <h4 class="font-bold text-center mb-4 text-green-800">Finance</h4>
+                            <div class="process-step mt-16">Prepare Invoice</div>
+                            <div class="arrow"></div>
+                             <div class="process-step mt-16 bg-green-50 border-green-200">Send Invoice to Customer</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="mt-16 text-center">
+                 <h2 class="text-3xl font-bold text-gray-900 mb-4">Projected Results</h2>
+                 <p class="text-lg text-gray-600 max-w-3xl mx-auto mb-8">By eliminating manual handoffs and enabling parallel work, the redesigned workflow leads to a faster, more reliable order-to-cash cycle.</p>
+                 <div class="bg-white p-6 sm:p-8 rounded-lg shadow-lg">
+                    <div class="chart-container">
+                        <canvas id="resultsChart"></canvas>
+                    </div>
+                 </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const contentPanes = document.querySelectorAll('.content-pane');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetId = tab.id.replace('tab-', 'content-');
+                    
+                    tabs.forEach(t => {
+                        t.classList.remove('tab-active');
+                        t.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                    });
+
+                    tab.classList.add('tab-active');
+                    tab.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+
+                    contentPanes.forEach(pane => {
+                        if (pane.id === targetId) {
+                            pane.classList.remove('hidden');
+                        } else {
+                            pane.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+            const ctx = document.getElementById('resultsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['As-Is Process', 'To-Be Process'],
+                    datasets: [{
+                        label: 'Average Cycle Time (Days)',
+                        data: [8, 3],
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.6)',
+                            'rgba(34, 197, 94, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(34, 197, 94, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Days to Complete'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Invoicing Cycle Time Improvement',
+                            font: {
+                                size: 18
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
